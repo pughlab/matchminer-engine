@@ -166,7 +166,7 @@ class MatchEngine(object):
         value = data[key]
         global_node = 1
         g = nx.DiGraph()
-        s = [0, global_node, key, value]
+        s = [[0, global_node, key, value]]
 
         while len(s) > 0:
             current = s.pop(0)
@@ -227,16 +227,18 @@ class MatchEngine(object):
         # todo fix this unit test and documentation
 
         item = node['value']
-        c = self.prepare_clinical_criteria(item)
+        cquery = self.prepare_clinical_criteria(item)
 
-        if len(c.keys()) == 0:
-            matched_clinical = list()
+        if len(cquery.keys()) == 0:
+            clinical_ids = []
+            sample_ids = []
         else:
             proj = {'_id': 1, 'SAMPLE_ID': 1}
-            results = set(self.db.clinical.find(c, proj))
-            matched_clinical = set((x['_id'], x['SAMPLE_ID']) for x in results)
+            results = list(self.db.clinical.find(cquery, proj))
+            clinical_ids = [str(i['_id']) for i in results]
+            sample_ids = [str(i['SAMPLE_ID']) for i in results]
 
-        return matched_clinical
+        return {'document_ids': clinical_ids, 'sample_ids': sample_ids}
 
     def run_query_genomic(self, node):  # genomic query
         """
@@ -245,27 +247,26 @@ class MatchEngine(object):
         # todo fix this unit test and documentation
 
         item = node['value']
-        g, neg, sv = self.prepare_genomic_criteria(item)
+        gquery, neg, sv = self.prepare_genomic_criteria(item)
 
-        if len(g.keys()) == 0:
-            matched_genomic = list()
+        if len(gquery.keys()) == 0:
+            genomic_ids = []
+            sample_ids = []
         else:
             proj = {'_id': 1, 'SAMPLE_ID': 1}
-            results = list(self.db.genomic.find(g, proj))
+            results = list(self.db.genomic.find(gquery, proj))
 
             # if a negative query was matched, the formatted genomic alteration will reflect the trial criteria
             # and the genomic information will not be copied into the trial_match document
             if neg:
-
                 # If the yaml criterium was negative, then subtract the matched results from the total set
-                matched_sample_ids = self.all_match - set(x['SAMPLE_ID'] for x in results)
-                matched_genomic = set((x['_id'], x['SAMPLE_ID']) for x in results
-                                      if x['SAMPLE_ID'] in matched_sample_ids)
-
+                sample_ids = self.all_match - set(x['SAMPLE_ID'] for x in results)
+                genomic_ids = [str(i['_id']) for i in results]
             else:
-                matched_genomic = set((x['_id'], x['SAMPLE_ID']) for x in results)
+                genomic_ids = [str(i['_id']) for i in results]
+                sample_ids = [str(i['SAMPLE_ID']) for i in results]
 
-        return matched_genomic, neg
+        return {'document_ids': genomic_ids, 'sample_ids': sample_ids}, neg
 
     def traverse_match_tree(self, g):
         """ Finds matches for a given match tree
@@ -274,9 +275,9 @@ class MatchEngine(object):
         :return: match set for a tree
         """
 
-        matched = set()
-        matched_clinical = {}
-        matched_genomic = {}
+        neg_dict = {True: 'negative_genomic', False: 'genomic'}
+
+        matched = {}
         for node_id in list(nx.dfs_postorder_nodes(g, source=1)):
 
             # get node and its child
@@ -286,29 +287,66 @@ class MatchEngine(object):
             # if leaf node then execute query
             if len(successors) == 0:
 
+                print '^^^^^^^^^^'
+                print 'node_id', node_id
+
+                matched[node_id] = {}
+
                 if node['type'] == 'genomic':
-                    matched_genomic[node_id], neg = self.run_query_genomic(node)
+                    results, neg = self.run_query_genomic(node)
+                    matched[node_id]['document_ids'] = results['document_ids']
+                    matched[node_id]['sample_ids'] = results['sample_ids']
+                    matched[node_id]['match_type'] = neg_dict[neg]
+
                 elif node['type'] == 'clinical':
-                    matched_clinical[node_id] = self.run_query_clinical(node)
+                    results = self.run_query_clinical(node)
+                    matched[node_id]['document_ids'] = results['document_ids']
+                    matched[node_id]['sample_ids'] = results['sample_ids']
+                    matched[node_id]['match_type'] = 'clinical'
+
                 else:
                     logging.info("bad match tree")
 
-            # else apply logic based on and/or
-            elif node['type'] != 'root':  # todo check for mid-level intersections/unions
+            else:
 
+                all_sample_ids = set()
+                matched[node_id] = {}
+
+                # intersection on sample ids
                 if node['type'] == 'and':
-                    pass
-                    # todo matched = {(_id1c|_id2g, SAMPLE_ID) if SAMPLE_ID in both} (c for clinical, g for genomic, ng for neg genomic)
 
-                if node['type'] == 'or':
-                    pass
-                    # todo matched = {(_id1, SAMPLE_ID), (_id2, SAMPLE_ID) for all SAMPLE_IDs in either)}
+                    print 'DEBUG'
+                    print matched[successors[0]]
 
-            else:  # todo check for root intersections/unions
-                pass
-                # todo matched = same set logic
+                    all_sample_ids = set(matched[successors[0]]['sample_ids'])
+                    for child_node_id in successors[1:]:
+                        all_sample_ids = all_sample_ids.intersection(matched[child_node_id]['sample_ids'])
 
-        return matched
+                # union on sample ids
+                elif node['type'] == 'or':
+                    all_sample_ids = set()
+                    for child_node_id in successors:
+                        all_sample_ids = all_sample_ids.union(matched[child_node_id]['sample_ids'])
+
+                # get document ids and match types of all matches
+                for child_node_id in successors:
+
+                    match_type = matched[child_node_id]['match_type']
+                    match_dict = dict(zip(matched[child_node_id]['sample_ids'],
+                                          matched[child_node_id]['document_ids']))
+
+                    for sample_id, document_id in match_dict.iteritems():
+                        if sample_id in all_sample_ids:
+                            if sample_id not in matched[node_id]:
+                                matched[node_id][sample_id] = {
+                                    'document_id': document_id,
+                                    'match_type': match_type
+                                }
+                            else:
+                                matched[node_id][sample_id]['document_id'] += '|%s' % document_id
+                                matched[node_id][sample_id]['match_type'] += '|%s' % match_type
+
+        return matched[1]
 
     def prepare_clinical_criteria(self, item):
         """
@@ -407,18 +445,29 @@ class MatchEngine(object):
 
         return g, track_neg, track_sv
 
-    def find_trial_matches(self):
+    def find_trial_matches(self, mrns=None, protocol_nos=None):
         """
         Iterates through all match clauses of all trials located in the database and matches patients to trials
         based on their clinical and genomic documents.
 
+        :param mrns: ```list``` Optional list of subset MRNs to match
+        :param protocol_nos: ```list``` Optional list of subset trial protocol numbers to match
         :return: Dictionary containing matches
         """
 
         # all MRNs and trials in the database
-        mrns = self.db.clinical.distinct('DFCI_MRN')
+        if mrns is not None:
+            mrns = parse_arg(mrns)
+        else:
+            mrns = self.db.clinical.distinct('DFCI_MRN')
+
+        if protocol_nos is not None:
+            tquery = {'protocol_no': {'$in': parse_arg(protocol_nos)}}
+        else:
+            tquery = {}
+
         proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1}
-        all_trials = list(self.db.trial.find({}, proj))
+        all_trials = list(self.db.trial.find(tquery, proj))
 
         # create a map between sample id and MRN
         mrn_map = samples_from_mrns(self.db, mrns)
@@ -480,7 +529,16 @@ class MatchEngine(object):
         # get all matches
         match_tree = self.create_match_tree(trial_segment['match'][0])
         matched = self.traverse_match_tree(match_tree)
-        # todo matched is a set like this {(_id1g|id2g|id3c, SAMPLE_ID)}
+
+        print
+        print '--------------------------------'
+        print '--------------------------------'
+        print '--------------------------------'
+        print '--------------------------------'
+        print '--------------------------------'
+        print '--------------------------------'
+        print
+        return
 
         for sample in matched:
 
@@ -523,7 +581,7 @@ class MatchEngine(object):
                 'TIER': 1,
                 'CLINICAL_ID': 1,
                 'MMR_STATUS': 1,
-                'ACTIONABILITY': 1
+                'ACTIONABILITY': 1,
                 '_id': 1
             }
             genomic = self.db.genomic.find(gquery, gproj)

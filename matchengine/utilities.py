@@ -493,3 +493,17 @@ def get_coordinating_center(trial):
         return 'unknown'
     else:
         return trial['_summary']['coordinating_center']
+
+
+def parse_arg(args):
+
+    val = []
+    if args:
+        if os.path.isfile(args):
+            with open(args, 'r') as f:
+                for line in f.readlines():
+                    val.extend([i.strip() for i in line.strip().split(',') if i])
+        else:
+            val.extend(args.split(','))
+
+    return val

@@ -254,9 +254,17 @@ def match(args):
 
     db = get_db(args.mongo_uri)
 
+    mrns = None
+    protocol_nos = None
+    if args.mrns:
+        mrns = args.mrns
+
+    if args.protocol_nos:
+        protocol_nos = args.protocol_nos
+
     while True:
         me = MatchEngine(db)
-        me.find_trial_matches()
+        me.find_trial_matches(mrns, protocol_nos)
 
         # exit if it is not set to run as a nightly automated daemon, otherwise sleep for a day
         if not args.daemon:
@@ -299,6 +307,10 @@ if __name__ == '__main__':
     param_outpath_help = 'Destination and name of your results file.'
     param_trial_format_help = 'File format of input trial data. Default is YML.'
     param_patient_format_help = 'File format of input patient data (both clinical and genomic files). Default is CSV.'
+    mrn_param_help = 'Specify an MRN, a comma-separated list of MRNs, or the path to a file containing a ' \
+                     'comma-separated list of MRNs'
+    protocol_no_param_help = 'Specify a trial protocol number, a comma-separated list of trial protocol number, ' \
+                             'or the path to a file containing a comma-separated list of trial protocol numbers.'
 
     # mode parser.
     main_p = argparse.ArgumentParser()
@@ -327,6 +339,8 @@ if __name__ == '__main__':
     # match
     subp_p = subp.add_parser('match', help='Matches all trials in database to patients')
     subp_p.add_argument('--mongo-uri', dest='mongo_uri', required=False, default=None, help=param_mongo_uri_help)
+    subp_p.add_argument('--mrns', dest='mrns', required=False, help=mrn_param_help)
+    subp_p.add_argument('--protocol-nos', dest='protocol_nos', required=False, help=protocol_no_param_help)
     subp_p.add_argument('--daemon', dest="daemon", required=False, action="store_true", help=param_daemon_help)
     subp_p.add_argument('--json', dest="json_format", required=False, action="store_true", help=param_json_help)
     subp_p.add_argument('--csv', dest="csv_format", required=False, action="store_true", help=param_csv_help)
