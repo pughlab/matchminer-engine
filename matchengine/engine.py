@@ -510,7 +510,7 @@ class MatchEngine(object):
 
         # all MRNs and trials in the database
         mrns = self.db.clinical.distinct('DFCI_MRN')
-        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1}
+        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'short_title':1,'site_list':1}
         all_trials = list(self.db.trial.find({}, proj))
 
         # create a map between sample id and MRN
@@ -518,7 +518,6 @@ class MatchEngine(object):
 
         # initialize trial matches
         trial_matches = []
-
         # for all trials check for matches on the dose, arm, and step levels and keep track of what is found
         for trial in all_trials:
 
@@ -569,7 +568,6 @@ class MatchEngine(object):
         :param trial_status: Overall trial status. either open or closed.
         :return: Dictionary containing the matches
         """
-
         # get all matches
         match_tree = self.create_match_tree(trial_segment['match'][0])
         sample_ids, ginfos = self.traverse_match_tree(match_tree)
@@ -595,6 +593,7 @@ class MatchEngine(object):
 
                 # add match document
                 match = alteration
+                match['title'] = trial['short_title']
                 match['mrn'] = mrn_map[alteration['sample_id']]
                 match['match_level'] = match_segment
                 match['trial_accrual_status'] = trial_status
@@ -625,6 +624,8 @@ class MatchEngine(object):
                 elif match_segment == 'arm':
                     match['internal_id'] = str(trial_segment['arm_internal_id'])
                     match['code'] = str(trial_segment['arm_code'])
+                    match['dose'] = ','.join(map(lambda d : ":".join([d['level_code'],
+                                                d['level_description']]), trial_segment['dose_level']))
                     if 'arm_suspended' in trial_segment and trial_segment['arm_suspended'].lower() == 'y':
                         match['trial_accrual_status'] = 'closed'
                 elif match_segment == 'step':

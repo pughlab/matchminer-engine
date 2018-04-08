@@ -25,8 +25,10 @@ def add_sort_order(trial_matches):
 
     if len(trial_match_df.index) == 0:
         return trial_match_df
-
-    f1 = (trial_match_df['vital_status'] == 'alive')
+    try:
+        f1 = (trial_match_df['vital_status'] == 'alive')
+    except KeyError as ke:
+        f1 = True
     f2 = (trial_match_df['trial_accrual_status'] == 'open')
     f3 = (trial_match_df['genomic_alteration'].str.strip().str.title() != 'Structural Variation')
     all_sample_ids = trial_match_df.sample_id.unique().tolist()

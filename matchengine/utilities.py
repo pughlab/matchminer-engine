@@ -380,6 +380,8 @@ def add_matches(trial_matches_df, db):
         trial_matches_df['clinical_id'] = trial_matches_df['clinical_id'].apply(lambda x: str(x))
 
     if 'genomic_id' in trial_matches_df.columns:
+        # remove rows without gonomic_id
+        trial_matches_df.dropna(subset=['genomic_id'], inplace=True)
         trial_matches_df['genomic_id'] = trial_matches_df['genomic_id'].apply(lambda x: str(x))
 
     if 'report_date' in trial_matches_df.columns:
@@ -488,11 +490,12 @@ def get_coordinating_center(trial):
 
     :param trial: Entire trial object
     """
-
-    if '_summary' not in trial or 'coordinating_center' not in trial['_summary']:
-        return 'unknown'
-    else:
+    if 'site_list' in trial and 'site' in trial['site_list']:
+        return ','.join(map(lambda s: s['site_name'], trial['site_list']['site']))
+    elif '_summary' in trial and 'coordinating_center' in trial['_summary']:
         return trial['_summary']['coordinating_center']
+    else:
+        return 'unknown'
 
 
 def check_for_genomic_node(g, node_id=1):
