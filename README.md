@@ -138,5 +138,6 @@ nosetests tests
 ```
 
 ## Authors
-* **Zachary Zwiesler** - zwiesler@jimmy.harvard.edu
-* **James Lindsay** - jlindsay@jimmy.harvard.edu
+* **Zachary Zwiesler**
+* **Priti Kumari**
+* **James Lindsay**
