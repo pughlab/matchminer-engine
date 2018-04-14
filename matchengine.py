@@ -22,7 +22,7 @@ MATCH_FIELDS = "mrn,sample_id,first_last,protocol_no,nct_id,genomic_alteration,t
                "vital_status,oncotree_primary_diagnosis_name,true_hugo_symbol,true_protein_change," \
                "true_variant_classification,variant_category,report_date,chromosome,position," \
                "true_cdna_change,reference_allele,true_transcript_exon,canonical_strand,allele_fraction," \
-               "cnv_call,wildtype,_id"
+               "cnv_call,wildtype,_id,oncogenicity,mutation_effect"
 
 
 class Trial:
@@ -181,8 +181,8 @@ def load(args):
                         print '##         ## trial age restrictions properly.'
                         print '##         ## System error: \n%s' % exc
 
-            p.genomic_df['TRUE_TRANSCRIPT_EXON'] = p.genomic_df['TRUE_TRANSCRIPT_EXON'].apply(
-                lambda x: int(x) if x != '' and pd.notnull(x) else x)
+            # p.genomic_df['TRUE_TRANSCRIPT_EXON'] = p.genomic_df['TRUE_TRANSCRIPT_EXON'].apply(
+            #     lambda x: int(x) if x != '' and pd.notnull(x) else x)
 
             # Add clinical data to mongo
             logging.info('Adding clinical data to mongo...')

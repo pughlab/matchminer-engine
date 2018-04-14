@@ -510,7 +510,7 @@ class MatchEngine(object):
 
         # all MRNs and trials in the database
         mrns = self.db.clinical.distinct('DFCI_MRN')
-        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'short_title':1,'site_list':1}
+        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'long_title':1,'site_list':1}
         all_trials = list(self.db.trial.find({}, proj))
 
         # create a map between sample id and MRN
@@ -590,10 +590,9 @@ class MatchEngine(object):
         # add to master list if any sample ids matched
         for sample in ginfos:
             for alteration in sample:
-
                 # add match document
                 match = alteration
-                match['title'] = trial['short_title']
+                match['title'] = trial['long_title']
                 match['mrn'] = mrn_map[alteration['sample_id']]
                 match['match_level'] = match_segment
                 match['trial_accrual_status'] = trial_status
