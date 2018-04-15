@@ -22,7 +22,7 @@ MATCH_FIELDS = "mrn,sample_id,first_last,protocol_no,nct_id,genomic_alteration,t
                "vital_status,oncotree_primary_diagnosis_name,true_hugo_symbol,true_protein_change," \
                "true_variant_classification,variant_category,report_date,chromosome,position," \
                "true_cdna_change,reference_allele,true_transcript_exon,canonical_strand,allele_fraction," \
-               "cnv_call,wildtype,_id,oncogenicity,mutation_effect"
+               "cnv_call,wildtype,_id,oncogenicity,mutation_effect,er_staus,pr_status,her2_status"
 
 
 class Trial:

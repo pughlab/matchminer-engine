@@ -269,6 +269,8 @@ class MatchEngine(object):
                         'CLINICAL_ID': 1,
                         'MMR_STATUS': 1,
                         'ACTIONABILITY': 1,
+                        'ONCOGENICITY': 1,
+                        'MUTATION_EFFECT': 1,
                         '_id': 1
                     }
 
@@ -458,7 +460,8 @@ class MatchEngine(object):
 
         # only map by these keys
         map_keys = ["hugo_symbol", "variant_category", "protein_change", "wildcard_protein_change",
-                    "variant_classification", "exon", "cnv_call", "wildtype", "mmr_status", "ms_status"]
+                    "variant_classification", "exon", "cnv_call", "wildtype", "mmr_status", "ms_status",
+                    "er_status", "pr_status","her2_status"]
 
         # all other keys are ignored when matching
         for key in item.keys():
@@ -576,12 +579,16 @@ class MatchEngine(object):
         if sample_ids:
             cproj = {
                     'SAMPLE_ID': 1,
+                    'PATIENT_ID': 1,
                     'ORD_PHYSICIAN_NAME': 1,
                     'ORD_PHYSICIAN_EMAIL': 1,
                     'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': 1,
                     'REPORT_DATE': 1,
                     'VITAL_STATUS': 1,
                     'FIRST_LAST': 1,
+                    'PR_STATUS': 1,
+                    'ER_STATUS': 1,
+                    'HER2_STATUS': 1,
                     'GENDER': 1,
                     '_id': 1
                 }

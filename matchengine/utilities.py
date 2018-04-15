@@ -30,6 +30,10 @@ def build_gquery(field, txt):
         key = '$eq'
         txt = mmr_map[txt]
 
+    # ER, PR and HER2 Status
+    if field.lower() == 'er_status' or field.lower() == 'pr_status' or field.lower() == 'her2_status':
+        key = '$eq'
+
     # Wildcard Protein Change
     elif field.lower() == 'wildcard_protein_change':
 
