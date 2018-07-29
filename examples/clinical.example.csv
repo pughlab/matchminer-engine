@@ -1,4 +1,4 @@
-SAMPLE_ID,ORD_PHYSICIAN_NAME,ORD_PHYSICIAN_EMAIL,ONCOTREE_PRIMARY_DIAGNOSIS_NAME,REPORT_DATE,VITAL_STATUS,FIRST_LAST,BIRTH_DATE,DFCI_MRN,GENDER
+SAMPLE_ID,ORD_PHYSICIAN_NAME,ORD_PHYSICIAN_EMAIL,ONCOTREE_PRIMARY_DIAGNOSIS_NAME,REPORT_DATE,VITAL_STATUS,FIRST_LAST,BIRTH_DATE,MRN,GENDER
 BRCA-METABRIC-S1-MB-0506,Parker Swinford [fake] M.D.,Parker@fake_email.com,Breast Invasive Ductal Carcinoma,2015-06-15,alive,Shirley Kavanagh[Fake],1961-12-17,0,Female
 BRCA-METABRIC-S1-MB-0022,Donald Jackson [fake] M.D.,Donald@fake_email.com,Breast Invasive Ductal Carcinoma,2014-12-18,deceased,Adam Herzog[Fake],1927-08-31,1,Male
 BRCA-METABRIC-S1-MB-0275,Lois Chow [fake] M.D.,Lois@fake_email.com,Breast Invasive Ductal Carcinoma,2012-10-15,alive,Adam Masse[Fake],1954-10-14,2,Male

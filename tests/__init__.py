@@ -72,7 +72,7 @@ class TestSetUp(unittest.TestCase):
             'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': diagnosis,
             'SAMPLE_ID': sample_id,
             'VITAL_STATUS': 'alive',
-            'DFCI_MRN': mrn,
+            'MRN': mrn,
             'REPORT_DATE': self.static_date,
             'BIRTH_DATE': age,
             'GENDER': gender

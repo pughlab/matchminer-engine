@@ -69,7 +69,7 @@ class TestSort(TestSetUp):
         sort_order = {('01', 'p01'): []}
         match['tier'] = None
         sort_order = sort_by_tier(match, sort_order)
-        assert sort_order[('01', 'p01')][0] == 8
+        assert sort_order[('01', 'p01')][0] == 7
 
         sort_order = {('01', 'p01'): []}
         match['variant_category'] = 'CNV'
@@ -83,7 +83,6 @@ class TestSort(TestSetUp):
         match['mmr_status'] = None
         match['clinical_only'] = True
         sort_order = sort_by_tier(match, sort_order)
-        print sort_order
         assert sort_order[('01', 'p01')][0] == 7
 
     def test_sort_by_match_type(self):

@@ -40,7 +40,7 @@ def add_sort_order(trial_matches):
         matches = df.T.to_dict().values()
 
         # The sort order dictionary keeps track of the priority for each sort category for each match
-        # Index 0 is sorted by tier with values 0 to 8
+        # Index 0 is sorted by tier with values 0 to 7
         # Index 1 is sorted by match type with values 0 to 1
         # Index 2 is sorted by cancer type match with values 0 to 2
         # Index 3 is sorted by coordinating center with values 0 to 1
@@ -113,13 +113,8 @@ def sort_by_tier(match, sort_order):
                                          priority=0,
                                          sort_order_li=sort_order[idx])
 
-    elif 'clinical_only' in match and match['clinical_only'] is True:
-        sort_order[idx] = add_sort_value(sort_value=7,
-                                         priority=0,
-                                         sort_order_li=sort_order[idx])
-
     else:
-        sort_order[idx] = add_sort_value(sort_value=8,
+        sort_order[idx] = add_sort_value(sort_value=7,
                                          priority=0,
                                          sort_order_li=sort_order[idx])
 

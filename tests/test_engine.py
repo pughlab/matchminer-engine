@@ -32,7 +32,7 @@ class TestMatchEngine(TestSetUp):
             'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': onc,
             'SAMPLE_ID': self.sample_id,
             'VITAL_STATUS': 'alive',
-            'DFCI_MRN': self.mrn,
+            'MRN': self.mrn,
             'REPORT_DATE': self.static_date,
             'BIRTH_DATE': self.static_date,
             'GENDER': 'Male'

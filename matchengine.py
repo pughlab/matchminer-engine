@@ -119,7 +119,7 @@ def load(args):
     Sets up MongoDB for matching
 
     :param args: clinical: Path to csv file containing clinical data. Required fields are:
-        - DFCI_MRN (Unique patient identifier)
+        - MRN (Unique patient identifier)
         - SAMPLE_ID (Unique sample identifier)
         - ONCOTREE_PRIMARY_DIAGNOSIS_NAME (Disease diagnosis)
         - BIRTH_DATE (Date of birth in format 'YYYY-MM-DD 00:00:00.000')

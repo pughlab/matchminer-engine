@@ -15,7 +15,7 @@ class TestSV(TestSetUp):
 
         self.db.clinical.insert_one({
             "SAMPLE_ID": "MATCH",
-            "DFCI_MRN": "MRN00",
+            "MRN": "MRN00",
             "VITAL_STATUS": "alive",
             "BIRTH_DATE": dt.datetime.today().replace(year=1900, month=11, day=3),
             "ONCOTREE_PRIMARY_DIAGNOSIS_NAME": "Glioblastoma Multiforme"
