@@ -460,7 +460,8 @@ class MatchEngine(object):
 
         # only map by these keys
         map_keys = ["hugo_symbol", "variant_category", "protein_change", "wildcard_protein_change",
-                    "variant_classification", "exon", "cnv_call", "wildtype", "mmr_status", "ms_status"]
+                    "variant_classification", "exon", "cnv_call", "wildtype", "mmr_status", "ms_status",
+                    "er_status", "pr_status","her2_status"]
 
         # all other keys are ignored when matching
         for key in item.keys():
@@ -511,8 +512,8 @@ class MatchEngine(object):
         """
 
         # all MRNs and trials in the database
-        mrns = self.db.clinical.distinct('MRN')
-        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1}
+        mrns = self.db.clinical.distinct('DFCI_MRN')
+        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'short_title':1,'site_list':1}
         all_trials = list(self.db.trial.find({}, proj))
 
         # create a map between sample id and MRN
@@ -520,34 +521,35 @@ class MatchEngine(object):
 
         # initialize trial matches
         trial_matches = []
-
         # for all trials check for matches on the dose, arm, and step levels and keep track of what is found
         for trial in all_trials:
+            try:
+                logging.info('Matching trial %s' % trial['protocol_no'])
 
-            logging.info('Matching trial %s' % trial['protocol_no'])
+                # If the trial is not open to accrual, all matches to all match trees in this trial will be marked closed
+                trial_status = 'open'
+                if '_summary' in trial:
+                    if 'status' in trial['_summary'] and isinstance(trial['_summary']['status'], list):
+                        if 'value' in trial['_summary']['status'][0]:
+                            if trial['_summary']['status'][0]['value'].lower() != 'open to accrual':
+                                trial_status = 'closed'
 
-            # If the trial is not open to accrual, all matches to all match trees in this trial will be marked closed
-            trial_status = 'open'
-            if '_summary' in trial:
-                if 'status' in trial['_summary'] and isinstance(trial['_summary']['status'], list):
-                    if 'value' in trial['_summary']['status'][0]:
-                        if trial['_summary']['status'][0]['value'].lower() != 'open to accrual':
-                            trial_status = 'closed'
+                # STEP #
+                for step in trial['treatment_list']['step']:
+                    if 'match' in step:
+                        trial_matches = self._assess_match(mrn_map, trial_matches, trial, step, 'step', trial_status)
 
-            # STEP #
-            for step in trial['treatment_list']['step']:
-                if 'match' in step:
-                    trial_matches = self._assess_match(mrn_map, trial_matches, trial, step, 'step', trial_status)
+                    # ARM #
+                    for arm in step['arm']:
+                        if 'match' in arm:
+                            trial_matches = self._assess_match(mrn_map, trial_matches, trial, arm, 'arm', trial_status)
 
-                # ARM #
-                for arm in step['arm']:
-                    if 'match' in arm:
-                        trial_matches = self._assess_match(mrn_map, trial_matches, trial, arm, 'arm', trial_status)
-
-                    # DOSE #
-                    for dose in arm['dose_level']:
-                        if 'match' in dose:
-                            trial_matches = self._assess_match(mrn_map, trial_matches, trial, dose, 'dose', trial_status)
+                        # DOSE #
+                        for dose in arm['dose_level']:
+                            if 'match' in dose:
+                                trial_matches = self._assess_match(mrn_map, trial_matches, trial, dose, 'dose', trial_status)
+            except KeyError as e:
+                logging.error(e.message)
 
         logging.info('Sorting trial matches')
         trial_matches = add_sort_order(trial_matches)
@@ -571,7 +573,6 @@ class MatchEngine(object):
         :param trial_status: Overall trial status. either open or closed.
         :return: Dictionary containing the matches
         """
-
         # get all matches
         match_tree = self.create_match_tree(trial_segment['match'][0])
         sample_ids, ginfos = self.traverse_match_tree(match_tree)
@@ -580,12 +581,16 @@ class MatchEngine(object):
         if sample_ids:
             cproj = {
                     'SAMPLE_ID': 1,
+                    'PATIENT_ID': 1,
                     'ORD_PHYSICIAN_NAME': 1,
                     'ORD_PHYSICIAN_EMAIL': 1,
                     'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': 1,
                     'REPORT_DATE': 1,
                     'VITAL_STATUS': 1,
                     'FIRST_LAST': 1,
+                    'PR_STATUS': 1,
+                    'ER_STATUS': 1,
+                    'HER2_STATUS': 1,
                     'GENDER': 1,
                     '_id': 1
                 }
@@ -594,9 +599,9 @@ class MatchEngine(object):
         # add to master list if any sample ids matched
         for sample in ginfos:
             for alteration in sample:
-
                 # add match document
                 match = alteration
+                match['title'] = trial['short_title']
                 match['mrn'] = mrn_map[alteration['sample_id']]
                 match['match_level'] = match_segment
                 match['trial_accrual_status'] = trial_status
@@ -627,6 +632,8 @@ class MatchEngine(object):
                 elif match_segment == 'arm':
                     match['internal_id'] = str(trial_segment['arm_internal_id'])
                     match['code'] = str(trial_segment['arm_code'])
+                    match['dose'] = ','.join(map(lambda d : ":".join([d['level_code'],
+                                                d['level_description']]), trial_segment['dose_level']))
                     if 'arm_suspended' in trial_segment and trial_segment['arm_suspended'].lower() == 'y':
                         match['trial_accrual_status'] = 'closed'
                 elif match_segment == 'step':
@@ -641,7 +648,6 @@ class MatchEngine(object):
     @staticmethod
     def _search_oncotree_diagnosis(onco_tree, c):
         """Add all the oncotree nodes """
-
         nodes = []
         tmpc = {'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': {}}
         for key in c['ONCOTREE_PRIMARY_DIAGNOSIS_NAME'].keys():

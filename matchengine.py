@@ -173,7 +173,8 @@ def load(args):
             # reformatting
             for col in ['BIRTH_DATE', 'REPORT_DATE']:
                 try:
-                    p.clinical_df[col] = p.clinical_df[col].apply(lambda x: str(dt.datetime.strptime(x, '%Y-%m-%d')))
+                    p.clinical_df[col] = p.clinical_df[col].apply(lambda x: str(dt.datetime.strptime(x, '%Y-%m-%d'))
+                                                            if x != '' and pd.notnull(x) else '1900-01-01 00:00:00')
                 except ValueError as exc:
                     if col == 'BIRTH_DATE':
                         print '## WARNING ## Birth dates should be formatted %Y-%m-%d to be properly stored in MongoDB.'
