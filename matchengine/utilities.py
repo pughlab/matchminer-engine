@@ -429,6 +429,7 @@ def get_db(uri):
     else:
         os.environ["MONGO_URI"] = MONGO_URI
         connection = MongoClient(MONGO_URI)
+        connection.local.system.replset.find_one()
         return connection["matchminer"]
 
 

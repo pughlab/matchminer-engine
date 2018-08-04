@@ -513,7 +513,7 @@ class MatchEngine(object):
 
         # all MRNs and trials in the database
         mrns = self.db.clinical.distinct('DFCI_MRN')
-        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'long_title':1,'site_list':1}
+        proj = {'protocol_no': 1, 'nct_id': 1, 'treatment_list': 1, '_summary': 1,'short_title':1,'site_list':1}
         all_trials = list(self.db.trial.find({}, proj))
 
         # create a map between sample id and MRN
@@ -523,31 +523,33 @@ class MatchEngine(object):
         trial_matches = []
         # for all trials check for matches on the dose, arm, and step levels and keep track of what is found
         for trial in all_trials:
+            try:
+                logging.info('Matching trial %s' % trial['protocol_no'])
 
-            logging.info('Matching trial %s' % trial['protocol_no'])
+                # If the trial is not open to accrual, all matches to all match trees in this trial will be marked closed
+                trial_status = 'open'
+                if '_summary' in trial:
+                    if 'status' in trial['_summary'] and isinstance(trial['_summary']['status'], list):
+                        if 'value' in trial['_summary']['status'][0]:
+                            if trial['_summary']['status'][0]['value'].lower() != 'open to accrual':
+                                trial_status = 'closed'
 
-            # If the trial is not open to accrual, all matches to all match trees in this trial will be marked closed
-            trial_status = 'open'
-            if '_summary' in trial:
-                if 'status' in trial['_summary'] and isinstance(trial['_summary']['status'], list):
-                    if 'value' in trial['_summary']['status'][0]:
-                        if trial['_summary']['status'][0]['value'].lower() != 'open to accrual':
-                            trial_status = 'closed'
+                # STEP #
+                for step in trial['treatment_list']['step']:
+                    if 'match' in step:
+                        trial_matches = self._assess_match(mrn_map, trial_matches, trial, step, 'step', trial_status)
 
-            # STEP #
-            for step in trial['treatment_list']['step']:
-                if 'match' in step:
-                    trial_matches = self._assess_match(mrn_map, trial_matches, trial, step, 'step', trial_status)
+                    # ARM #
+                    for arm in step['arm']:
+                        if 'match' in arm:
+                            trial_matches = self._assess_match(mrn_map, trial_matches, trial, arm, 'arm', trial_status)
 
-                # ARM #
-                for arm in step['arm']:
-                    if 'match' in arm:
-                        trial_matches = self._assess_match(mrn_map, trial_matches, trial, arm, 'arm', trial_status)
-
-                    # DOSE #
-                    for dose in arm['dose_level']:
-                        if 'match' in dose:
-                            trial_matches = self._assess_match(mrn_map, trial_matches, trial, dose, 'dose', trial_status)
+                        # DOSE #
+                        for dose in arm['dose_level']:
+                            if 'match' in dose:
+                                trial_matches = self._assess_match(mrn_map, trial_matches, trial, dose, 'dose', trial_status)
+            except KeyError as e:
+                logging.error(e.message)
 
         logging.info('Sorting trial matches')
         trial_matches = add_sort_order(trial_matches)
@@ -599,7 +601,7 @@ class MatchEngine(object):
             for alteration in sample:
                 # add match document
                 match = alteration
-                match['title'] = trial['long_title']
+                match['title'] = trial['short_title']
                 match['mrn'] = mrn_map[alteration['sample_id']]
                 match['match_level'] = match_segment
                 match['trial_accrual_status'] = trial_status
@@ -646,7 +648,6 @@ class MatchEngine(object):
     @staticmethod
     def _search_oncotree_diagnosis(onco_tree, c):
         """Add all the oncotree nodes """
-
         nodes = []
         tmpc = {'ONCOTREE_PRIMARY_DIAGNOSIS_NAME': {}}
         for key in c['ONCOTREE_PRIMARY_DIAGNOSIS_NAME'].keys():
