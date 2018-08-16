@@ -605,7 +605,8 @@ class MatchEngine(object):
                 match['mrn'] = mrn_map[alteration['sample_id']]
                 match['match_level'] = match_segment
                 match['trial_accrual_status'] = trial_status
-                match['cancer_type_match'] = get_cancer_type_match(trial)
+                #match['cancer_type_match'] = get_cancer_type_match(trial)
+                match['match_cancer_type'] = get_cancer_type_match(trial)
                 match['coordinating_center'] = get_coordinating_center(trial)
 
                 trial_keys = ['protocol_no', 'nct_id']
@@ -636,6 +637,9 @@ class MatchEngine(object):
                                                 d['level_description']]), trial_segment['dose_level']))
                     if 'arm_suspended' in trial_segment and trial_segment['arm_suspended'].lower() == 'y':
                         match['trial_accrual_status'] = 'closed'
+
+                    match['match_cancer_type'] = get_match_cancer_type(trial_segment)
+
                 elif match_segment == 'step':
                     match['internal_id'] = str(trial_segment['step_internal_id'])
                     match['code'] = trial_segment['step_code']
