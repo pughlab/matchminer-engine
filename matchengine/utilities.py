@@ -468,6 +468,24 @@ def clean_query_for_msi(g):
     return g
 
 
+def get_match_cancer_type(trial_segment):
+    try:
+        return trial_segment['match'][0]['and'][1]['clinical']['oncotree_primary_diagnosis']
+    except:
+        try:
+            match_cancer_type_list = []
+            for one_type in trial_segment['match'][0]['and'][1]['or']:
+                match_cancer_type_list.append(one_type['clinical']['oncotree_primary_diagnosis'])
+            return ' '.join(match_cancer_type_list) if len(match_cancer_type_list) > 0 else ''
+        except:
+            try:
+                match_cancer_type_list = []
+                for one_type in trial_segment['match'][0]['and'][1]['and']:
+                    match_cancer_type_list.append(one_type['clinical']['oncotree_primary_diagnosis'])
+                return ' '.join(match_cancer_type_list) if len(match_cancer_type_list) > 0 else ''
+            except:
+                return ''
+
 def get_cancer_type_match(trial):
     """
     Determines if the trial has criteria to match all solid or all liquid tumors in it.
@@ -475,7 +493,6 @@ def get_cancer_type_match(trial):
     :param trial: Entire trial object
     :return: cancer_type_match
     """
-
     if '_summary' not in trial or 'tumor_types' not in trial['_summary']:
         return 'unknown'
 
