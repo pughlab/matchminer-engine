@@ -65,11 +65,15 @@ class MatchEngine(object):
             'PROTEIN_CHANGE': 'TRUE_PROTEIN_CHANGE',
             'WILDCARD_PROTEIN_CHANGE': 'TRUE_PROTEIN_CHANGE',
             'ONCOTREE_PRIMARY_DIAGNOSIS': 'ONCOTREE_PRIMARY_DIAGNOSIS_NAME',
+            'MOLECULAR_FUNCTION':'MUTATION_EFFECT',
             'VARIANT_CLASSIFICATION': 'TRUE_VARIANT_CLASSIFICATION',
             'VARIANT_CATEGORY': 'VARIANT_CATEGORY',
             'CNV_CALL': 'CNV_CALL',
             'WILDTYPE': 'WILDTYPE',
-            'GENDER': 'GENDER'
+            'GENDER': 'GENDER',
+            'ER_STATUS':'ER_STATUS',
+            'PR_STATUS': 'PR_STATUS',
+            'HER2_STATUS': 'HER2_STATUS'
         }
 
         val_map = {
@@ -87,6 +91,12 @@ class MatchEngine(object):
             'WILDTYPE': {
                 'true': True,
                 'false': False
+            },
+            'MOLECULAR_FUNCTION': {
+                'Activating': "Gain-of-function",
+                'Likely Activating': "Likely Gain-of-function",
+                'Inactivating': "Loss-of-function",
+                'Likely Inactivating': "Likely Loss-of-function"
             }
         }
 
@@ -419,7 +429,8 @@ class MatchEngine(object):
         onco_tree = build_oncotree()
 
         # only match by these keys
-        map_keys = ["oncotree_primary_diagnosis", "age_numerical", "gender"]
+        map_keys = ["oncotree_primary_diagnosis", "age_numerical", "gender", "her2_status",
+                     "pr_status","er_status"]
 
         # all other keys are ignored when matching
         for key in item.keys():
@@ -461,7 +472,7 @@ class MatchEngine(object):
         # only map by these keys
         map_keys = ["hugo_symbol", "variant_category", "protein_change", "wildcard_protein_change",
                     "variant_classification", "exon", "cnv_call", "wildtype", "mmr_status", "ms_status",
-                    "er_status", "pr_status","her2_status"]
+                    "molecular_function"]
 
         # all other keys are ignored when matching
         for key in item.keys():
@@ -639,7 +650,6 @@ class MatchEngine(object):
                         match['trial_accrual_status'] = 'closed'
 
                     match['match_cancer_type'] = get_match_cancer_type(trial_segment)
-
                 elif match_segment == 'step':
                     match['internal_id'] = str(trial_segment['step_internal_id'])
                     match['code'] = trial_segment['step_code']
