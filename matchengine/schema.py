@@ -85,7 +85,7 @@ yaml_genomic_schema = {
     'molecular_function': {
         'type': 'string',
         'required': False,
-        'allowed': ['Activating', 'Likely Activating', 'Inactivating', 'Likely Inactivating']
+        'allowed': ['Activating', 'Inactivating']
     },
     'protein_change': {
         'type': 'string',

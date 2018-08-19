@@ -66,6 +66,9 @@ def build_gquery(field, txt):
         else:
             txt = txt.replace('!', '')
 
+    elif field.lower() == 'molecular_function':
+        key = '$in' if isinstance(txt, list) else '$eq'
+
     # Otherwise set equal to
     else:
         key = '$eq'
