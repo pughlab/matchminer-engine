@@ -78,7 +78,7 @@ class MatchEngine(object):
 
         val_map = {
             'VARIANT_CATEGORY': {
-                'Mutation': 'MUTATION',
+                'Mutation': ['MUTATION', 'DEL', 'INS'],
                 'Copy Number Variation': 'CNV',
                 'Structural Variation': 'SV'
             },

@@ -51,9 +51,10 @@ def build_gquery(field, txt):
         txt = '^%s[A-Z]' % txt
 
     # Match any variant category
-    elif field.lower() == 'variant_category' and txt.lower() == 'any variation':
-        txt = ['MUTATION', 'CNV']
-        key = '$in'
+    elif field.lower() == 'variant_category':
+        if 'Any Variation' in txt:
+            txt = ['MUTATION', 'CNV', 'DEL', 'INS']
+        key = '$in' if isinstance(txt, list) else '$eq'
 
     # Not equal to given value
     elif (isinstance(txt, str) and txt.startswith('!')) or (isinstance(txt, unicode) and txt.startswith('!')):
@@ -383,8 +384,9 @@ def format_query(g, gene=False):
 def add_matches(trial_matches_df, db):
     """Add the match table to the database or update what already exists theres"""
     #removing rows with null values from trial matches
-    trial_matches_df = trial_matches_df.copy()
-    trial_matches_df = trial_matches_df.dropna(subset=['genomic_id'])
+    if not trial_matches_df.empty:
+        trial_matches_df = trial_matches_df.copy()
+        trial_matches_df = trial_matches_df.dropna(subset=['genomic_id'])
     if 'clinical_id' in trial_matches_df.columns:
         trial_matches_df['clinical_id'] = trial_matches_df['clinical_id'].apply(lambda x: str(x))
 
