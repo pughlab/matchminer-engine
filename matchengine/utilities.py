@@ -6,7 +6,6 @@ import sys
 import yaml
 import json
 import logging
-import pandas as pd
 import datetime as dt
 from pymongo import MongoClient
 
@@ -380,7 +379,6 @@ def format_query(g, gene=False):
 
     return alteration
 
-
 def add_matches(trial_matches_df, db):
     """Add the match table to the database or update what already exists theres"""
     #removing rows with null values from trial matches
@@ -399,6 +397,7 @@ def add_matches(trial_matches_df, db):
 
     if len(trial_matches_df.index) > 0:
         records = json.loads(trial_matches_df.T.to_json()).values()
+
         db.trial_match.drop()
         db.trial_match.insert_many(records)
 

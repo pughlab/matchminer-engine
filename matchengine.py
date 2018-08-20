@@ -11,13 +11,16 @@ import subprocess
 import pandas as pd
 import datetime as dt
 from pymongo import ASCENDING
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from matchengine.engine import MatchEngine
 from matchengine.utilities import get_db
 
 MONGO_URI = ""
 MONGO_DBNAME = "matchminer"
-MATCH_FIELDS = "mrn,sample_id,first_last,protocol_no,nct_id,genomic_alteration,tier,match_type," \
+MATCH_FIELDS = "mrn,patient_id,sample_id,first_last,protocol_no,nct_id,genomic_alteration,tier,match_type," \
                "trial_accrual_status,match_level,code,internal_id,ord_physician_name,ord_physician_email," \
                "vital_status,oncotree_primary_diagnosis_name,true_hugo_symbol,true_protein_change," \
                "true_variant_classification,variant_category,report_date,chromosome,position," \
@@ -245,6 +248,51 @@ def export_results(file_format, outpath):
           "--type {1} --out {2}.{1}".format(MATCH_FIELDS, file_format, outpath)
     subprocess.call(cmd.split(' '))
 
+def csv_diff(infiles, outfile):
+    cmd = "csvdiff --style=pretty --output={0} sample_id  {1} {2}".format(outfile, infiles[0],infiles[1])
+    subprocess.call(cmd.split(' '))
+
+def send_mail(physician, patient, sample):
+    me = "cbioportal@uhnresearch.ca"
+    physician = "kzhu@uhnresearch.ca"
+
+    # Create message container - the correct MIME type is multipart/alternative.
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = "Link"
+    msg['From'] = me
+    msg['To'] = physician
+
+    # Create the body of the message (a plain-text and an HTML version).
+    text = "Dear Dr. %s!\nnew trial match is available for your patient %s\n" \
+           "Here is the link to view the new trial which matches the sample %s:\n" \
+           "http://localhost:8081/cbioportal/case.do#/patient?studyId=OCTANE&sampleId=%s" % (physician, patient, sample, sample)
+    html = """\
+    <html>
+      <head>New Trial Match Available for your Review</head>
+      <body>
+        <p>Dear Dr. %s<br>
+           new trial match is available for your patient %s<br>
+           Here is the <a href="http://localhost:8081/cbioportal/case.do#/patient?studyId=OCTANE&sampleId=%s">link</a>
+           to view the new trial which matches the sample %s.
+        </p>
+      </body>
+    </html>
+    """ % (physician, patient, sample, sample)
+
+    # Record the MIME types of both parts - text/plain and text/html.
+    part1 = MIMEText(text, 'plain')
+    part2 = MIMEText(html, 'html')
+
+    # Attach parts into message container.
+    msg.attach(part1)
+    msg.attach(part2)
+
+    # Send the message via local SMTP server.
+    s = smtplib.SMTP('smtp.uhnresearch.ca')
+    # sendmail function takes 3 arguments: sender's address, recipient's address
+    # and message to send
+    s.sendmail(me, physician, msg.as_string())
+    s.quit()
 
 def match(args):
     """
@@ -257,6 +305,8 @@ def match(args):
 
     while True:
         me = MatchEngine(db)
+        #dump trial match collection
+        export_results('csv','./results_old')
         me.find_trial_matches()
 
         # exit if it is not set to run as a nightly automated daemon, otherwise sleep for a day
