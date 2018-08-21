@@ -249,35 +249,70 @@ def export_results(file_format, outpath):
     subprocess.call(cmd.split(' '))
 
 def csv_diff(infiles, outfile):
-    cmd = "csvdiff --style=pretty --output={0} sample_id  {1} {2}".format(outfile, infiles[0],infiles[1])
+    """
+    compare the semantic contents of two csv files
+    :param infiles: list
+    :param outfile: string
+    :return: None
+    """
+    # cmd = "csvdiff --style=pretty --output=./results_diff.json sample_id ./results_old.csv ./results.csv"
+    cmd = "csvdiff --style=pretty --output={0} sample_id {1} {2}".format(outfile,infiles[0],infiles[1])
+    logging.info(cmd)
     subprocess.call(cmd.split(' '))
 
-def send_mail(physician, patient, sample):
+def read_from_json(infile):
+    """
+    Prepare for email notification for new matches
+    :param infile: string
+    :return: None
+    """
+    json_data = open(infile).read()
+
+    data = json.loads(json_data)
+    if data:
+        for one_sample in data['added']:
+            physician_name = one_sample['ord_physician_name']
+            physician_email = one_sample['ord_physician_email']
+            sample_id = one_sample['sample_id']
+            patient_id = one_sample['patient_id']
+            logging.info("\t".join([physician_name, physician_email, sample_id, patient_id]))
+            send_mail(physician_name, physician_email, patient_id, sample_id)
+
+def send_mail(physician_name, physician_email, patient_id, sample_id):
+    """
+    send notification email to training physician
+    :param physician_name: string
+    :param physician_email: string
+    :param patient_id: string
+    :param sample_id: string
+    :return: None
+    """
     me = "cbioportal@uhnresearch.ca"
-    physician = "kzhu@uhnresearch.ca"
+    physician_email = "kzhu@uhnresearch.ca"
 
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Link"
     msg['From'] = me
-    msg['To'] = physician
+    msg['To'] = physician_email
 
     # Create the body of the message (a plain-text and an HTML version).
     text = "Dear Dr. %s!\nnew trial match is available for your patient %s\n" \
            "Here is the link to view the new trial which matches the sample %s:\n" \
-           "http://localhost:8081/cbioportal/case.do#/patient?studyId=OCTANE&sampleId=%s" % (physician, patient, sample, sample)
+           "http://cbioportal.ca:8086/case.do#/patient?studyId=OCTANE&sampleId=%s" % \
+                    (physician_name, patient_id, sample_id, sample_id)
     html = """\
     <html>
       <head>New Trial Match Available for your Review</head>
       <body>
         <p>Dear Dr. %s<br>
            new trial match is available for your patient %s<br>
-           Here is the <a href="http://localhost:8081/cbioportal/case.do#/patient?studyId=OCTANE&sampleId=%s">link</a>
+           Here is the <a href="http://cbioportal.ca:8086/case.do#/patient?studyId=OCTANE&sampleId=%s">link</a>
            to view the new trial which matches the sample %s.
         </p>
       </body>
     </html>
-    """ % (physician, patient, sample, sample)
+    """ % (physician_name, patient_id, sample_id, sample_id)
 
     # Record the MIME types of both parts - text/plain and text/html.
     part1 = MIMEText(text, 'plain')
@@ -291,7 +326,7 @@ def send_mail(physician, patient, sample):
     s = smtplib.SMTP('smtp.uhnresearch.ca')
     # sendmail function takes 3 arguments: sender's address, recipient's address
     # and message to send
-    s.sendmail(me, physician, msg.as_string())
+    s.sendmail(me, physician_email, msg.as_string())
     s.quit()
 
 def match(args):
@@ -306,9 +341,13 @@ def match(args):
     while True:
         me = MatchEngine(db)
         #dump trial match collection
-        export_results('csv','./results_old')
+        export_results('csv','./results_1')
         me.find_trial_matches()
-
+        # sending email notification for new matches
+        infiles = ['./results_old.csv','./results.csv']
+        outfile = './results_diff.json'
+        csv_diff(infiles, outfile)
+        read_from_json(outfile)
         # exit if it is not set to run as a nightly automated daemon, otherwise sleep for a day
         if not args.daemon:
 
