@@ -244,8 +244,9 @@ def add_trial(yml, db):
 
 def export_results(file_format, outpath):
     """Return csv file containing the match results to the current working directory"""
-    cmd = "mongoexport --host localhost:27017 --db matchminer -c trial_match --fields {0} " \
+    cmd = "/usr/local/mongodb/bin/mongoexport --host localhost:27017 --db matchminer -c trial_match --fields {0} " \
           "--type {1} --out {2}.{1}".format(MATCH_FIELDS, file_format, outpath)
+    print (cmd)
     subprocess.call(cmd.split(' '))
 
 def csv_diff(infiles, outfile):
@@ -347,7 +348,7 @@ def match(args):
         infiles = ['./results_old.csv','./results.csv']
         outfile = './results_diff.json'
         csv_diff(infiles, outfile)
-        read_from_json(outfile)
+        #read_from_json(outfile)
         # exit if it is not set to run as a nightly automated daemon, otherwise sleep for a day
         if not args.daemon:
 

@@ -94,7 +94,7 @@ class MatchEngine(object):
             },
             'MOLECULAR_FUNCTION': {
                 'Activating': ["Gain-of-function", "Likely Gain-of-function"],
-                'Inactivating': ["Loss-of-function", "Likely Loss-of-function"]
+                'Inactivating': ["Loss-of-function", "Likely Loss-of-function", "Unknown"]
             }
         }
 
